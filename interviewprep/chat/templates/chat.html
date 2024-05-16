@@ -33,15 +33,15 @@
         .user-message {
             background-color: #007bff;
             color: #fff;
-            float: right; 
+            float: right;
         }
         .bot-message {
             background-color: #808080;
             color: #fff;
-            float: left; 
+            float: left;
         }
         #user-input {
-            width: calc(80% - 85px);
+            width: calc(80% - 140px);
             margin-right: 10px;
             padding: 10px;
             border: 1px solid #ccc;
@@ -49,7 +49,7 @@
             background-color: #444;
             color: #fff;
         }
-        #send-button {
+        #send-button, #file-button {
             width: 75px;
             padding: 10px;
             border: none;
@@ -57,8 +57,9 @@
             background-color: #007bff;
             color: #fff;
             cursor: pointer;
+            margin-right: 10px;
         }
-        #send-button:hover {
+        #send-button:hover, #file-button:hover {
             background-color: #0056b3;
         }
         .chat-container-wrapper {
@@ -76,7 +77,18 @@
         .message-container {
             overflow: hidden;
         }
+        #file-input {
+            display: none;
+        }
+        .file-input-wrapper {
+            display: inline-block;
+            position: relative;
+        }
+        .file-input-wrapper i {
+            font-size: 24px;
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js"></script>
 </head>
@@ -84,7 +96,7 @@
     <form action="{% url 'logout' %}" method="post">
         {% csrf_token %}
         <input type="submit" value="Logout">
-      </form>
+    </form>
     <div class="chat-container-wrapper">
         <h1>Interview Prep Chatbot</h1>
         <div class="message-container">
@@ -94,6 +106,12 @@
         </div>
         <div style="display: flex; align-items: center;">
             <input type="text" id="user-input" placeholder="Type your message...">
+            <div class="file-input-wrapper">
+                <label for="file-input" id="file-button">
+                    <i class="fas fa-file-upload"></i>
+                </label>
+                <input type="file" id="file-input" accept=".pdf">
+            </div>
             <button id="send-button">Send</button>
         </div>
     </div>
@@ -101,19 +119,28 @@
     <script>
         function sendMessage() {
             var userInput = $('#user-input').val().trim();
-            if (userInput === '') return;
+            var fileInput = $('#file-input')[0].files[0];
+
+            if (userInput === '' && !fileInput) return;
+
+            if (userInput) {
+                $('#chat-container').append('<div class="chat-message user-message">' + userInput + '</div>');
+            }
+
+            var formData = new FormData();
+            formData.append('message', userInput);
+            if (fileInput) {
+                formData.append('file', fileInput);
+            }
             
-            $('#chat-container').append('<div class="chat-message user-message">' + userInput + '</div>');
-            scrollToBottom();
-    
             var csrfToken = Cookies.get('csrftoken');
     
             $.ajax({
-                url: 'api/chat/',
+                url: '/api/chat/',
                 type: 'POST',
-                data: {
-                    'message': userInput,
-                },
+                data: formData,
+                processData: false,
+                contentType: false,
                 headers: {
                     'X-CSRFToken': csrfToken
                 },
@@ -124,6 +151,8 @@
             });
     
             $('#user-input').val('');
+            $('#file-input').val('');
+            scrollToBottom();
         }
     
         function scrollToBottom() {
@@ -137,6 +166,16 @@
             if (e.which === 13) {
                 sendMessage();
             }
+        });
+
+        $('#file-button').click(function() {
+            e.preventDefault(); // Prevent default action to avoid multiple triggers
+            $('#file-input').click();
+        });
+
+        $('#file-input').change(function() {
+            var fileName = $(this).val().split('\\').pop();
+            $('#file-button').text(fileName ? fileName : 'Upload');
         });
     </script>
 </body>

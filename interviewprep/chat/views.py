@@ -9,18 +9,36 @@ from django.contrib.auth import login
 from .forms import NewUserForm
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+from PyPDF2 import PdfReader
+import io
 
 def index(request):
     return render(request, 'index.html')
 @login_required
+@csrf_exempt
 def chat_api(request):
     if request.method == 'POST':
         user_message = request.POST.get('message')
+        file = request.FILES.get('file')
 
-        persona = "Hello! I'm your dedicated interview preparation assistant. My goal is to help you ace your upcoming interviews by providing valuable insights, tips, and practice scenarios. Whether you're preparing for technical questions, behavioral interviews, or just need general advice, I'm here to support you every step of the way. Let's work together to boost your confidence and land that dream job!"
 
-        initial_context = f"{persona}\nUser: {user_message}\nAssistant:"
+        persona = ("Hello! I'm your dedicated interview preparation assistant. "
+                        "My goal is to help you ace your upcoming interviews by providing valuable insights, "
+                        "tips, and practice scenarios. Whether you're preparing for technical questions, "
+                        "behavioral interviews, or just need general advice, I'm here to support you every step of the way. "
+                        "Let's work together to boost your confidence and land that dream job!")
         
+        if file:
+            reader = PdfReader(io.BytesIO(file.read()))
+            number_of_pages = len(reader.pages)
+
+            pdf_text = ''
+            for page in range(number_of_pages):
+                pdf_text += reader.pages[page].extract_text()
+            user_message += "the content of the pdf is:\n\n"
+            user_message += pdf_text
+            print(user_message)
         client = OpenAI(
             api_key='sk-proj-1SIbGYYqAs0OORkrF30zT3BlbkFJTfZGVacC1SCpMmkyxFZB'
         )        
