@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interview Prep Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f3f3;
+            margin: 0;
+            padding: 0;
+        }
+        #chat-container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: 400px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        .chat-message {
+            margin: 10px 0;
+            padding: 10px 20px;
+            border-radius: 20px;
+            max-width: 70%;
+            word-wrap: break-word;
+            display: inline-block;
+            clear: both;
+        }
+        .user-message {
+            background-color: #efefef;
+            color: #333;
+            float: left;
+        }
+        .bot-message {
+            background-color: #4CAF50;
+            color: white;
+            float: right;
+        }
+        #user-input {
+            width: calc(80% - 85px);
+            margin-right: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+        }
+        #send-button {
+            width: 75px;
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        #send-button:hover {
+            background-color: #45a049;
+        }
+        .chat-container-wrapper {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .message-container {
+            overflow: hidden;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js"></script>
+</head>
+<body>
+    <div class="chat-container-wrapper">
+        <h1>Interview Prep Chatbot</h1>
+        <div class="message-container">
+            <div id="chat-container">
+                <!-- Chat messages will be displayed here -->
+            </div>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script>
+        function sendMessage() {
+            var userInput = $('#user-input').val().trim();
+            if (userInput === '') return;
+            
+            $('#chat-container').append('<div class="chat-message user-message">' + userInput + '</div>');
+            scrollToBottom();
+    
+            var csrfToken = Cookies.get('csrftoken');
+    
+            $.ajax({
+                url: 'api/chat/',
+                type: 'POST',
+                data: {
+                    'message': userInput,
+                },
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                success: function(response) {
+                    $('#chat-container').append('<div class="chat-message bot-message">' + response.message + '</div>');
+                    scrollToBottom();
+                }
+            });
+    
+            $('#user-input').val('');
+        }
+    
+        function scrollToBottom() {
+            var chatContainer = document.getElementById('chat-container');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    
+        $('#send-button').click(sendMessage);
+    
+        $('#user-input').keypress(function(e) {
+            if (e.which === 13) {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
