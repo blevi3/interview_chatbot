@@ -1,10 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from openai import OpenAI
 from django.conf import settings
 import random
 from django.contrib.auth.decorators import login_required
-
 from django.contrib.auth import login
 from .forms import NewUserForm
 from django.contrib.auth.models import User
@@ -13,9 +11,15 @@ from django.views.decorators.csrf import csrf_exempt
 from PyPDF2 import PdfReader
 import io
 from .models import Message, Conversation
+import logging
+from .vertex_ai_utils import generate_text
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 def index(request):
     return render(request, 'index.html')
+
 @login_required
 @csrf_exempt
 def chat_api(request):
@@ -30,30 +34,16 @@ def chat_api(request):
             pdf_text = ''
             for page in range(number_of_pages):
                 pdf_text += reader.pages[page].extract_text()
-            user_message += "the content of the pdf is:\n\n"
+            user_message += "\n\nThe content of the PDF is:\n\n"
             user_message += pdf_text
             print(user_message)
 
-            
-        persona = ("Hello! I'm your dedicated interview preparation assistant. "
-                   "My goal is to help you ace your upcoming interviews by providing valuable insights, "
-                   "tips, and practice scenarios. Whether you're preparing for technical questions, "
-                   "behavioral interviews, or just need general advice, I'm here to support you every step of the way. "
-                   "Let's work together to boost your confidence and land that dream job!")
-
-
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
         try:
-            response = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": persona},
-                    {"role": "user", "content": user_message}
-                ],
-                model="gpt-3.5-turbo",
-            )
-            bot_message = response.choices[0].message['content']
+            bot_message = generate_text(user_message)
+            logger.info(f"Vertex AI response: {bot_message}")
+
         except Exception as e:
+            logger.error(f"Error calling Vertex AI API: {e}")
             random_responses = [
                 "I'm sorry, I couldn't process your request at the moment.",
                 "It seems there was an issue. Let's try again later.",
@@ -88,30 +78,9 @@ def chat_api(request):
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
-
 def name_conversation(first_message):
-    persona = ("Hello! I'm your dedicated conversation namer. My goal is to come up with catchy and meaningful titles for our chats based on the content of your initial message. All the names I generate are related to an interview preperation theme.")
-
-
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
-    try:
-        response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": persona},
-                {"role": "user", "content": first_message}
-            ],
-            model="gpt-3.5-turbo",
-        )
-    except Exception as e:
-        return "Cannot generate name"
-    return response.choices[0].message['content']
-
-
-
-
-
-
+    # Implementation for naming conversation, potentially using Vertex AI or another method
+    return "Conversation Title"
 
 def register_request(request):
     if request.method == "POST":
@@ -119,24 +88,19 @@ def register_request(request):
         if not User.objects.filter(username=request.POST.get("username")).exists():
             if not User.objects.filter(email=request.POST.get("email")).exists():
                 if form.is_valid():
-                    username = form.cleaned_data.get('username')
-                    email = form.cleaned_data.get('email')
-        
                     user = form.save()
-                    messages.success(request, f'Account created for {username}!')
-                                        
                     login(request, user)
                     messages.success(request, "Registration successful.")
                     return redirect("/api/chat/")
                 else:
                     messages.error(request, "Password and confirm password do not match.")
-                    return render(request, 'registration/register.html', {'register_form': form, 'uname': request.POST.get("username"), 'address': request.POST.get("email")})
+                    return render(request, 'registration/register.html', {'register_form': form})
             else:
                 messages.error(request, "Email address already registered")
-                return render(request, 'registration/register.html', {'register_form': form, 'uname': request.POST.get("username")})
+                return render(request, 'registration/register.html', {'register_form': form})
         else:
             messages.error(request, "The username is occupied")
-            return render(request, 'registration/register.html', {'register_form': form, 'address': request.POST.get("email")})
+            return render(request, 'registration/register.html', {'register_form': form})
     else:
         form = NewUserForm()
-    return render(request, template_name="registration/register.html", context={"register_form": form})
+    return render(request, 'registration/register.html', context={"register_form": form})
