@@ -55,9 +55,11 @@ def chat_api(request):
             bot_message = response.choices[0].message['content']
         except Exception as e:
             random_responses = [
-                "Welcome, what type of interview are you preparing for? Technical, behavioral, or general advice?",
-                "Hello! How can I assist you with your interview preparation today?",
-                "Greetings! What specific questions or concerns do you have about your upcoming interview?",
+                "I'm sorry, I couldn't process your request at the moment.",
+                "It seems there was an issue. Let's try again later.",
+                "Hmm, something went wrong. Let me think...",
+                "Apologies, my circuits seem to be a bit fuzzy right now.",
+                "Looks like there's a glitch in the matrix. Please stand by."
             ]
             bot_message = random.choice(random_responses)
 
