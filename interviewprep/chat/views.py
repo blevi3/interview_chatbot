@@ -55,11 +55,9 @@ def chat_api(request):
             bot_message = response.choices[0].message['content']
         except Exception as e:
             random_responses = [
-                "I'm sorry, I couldn't process your request at the moment.",
-                "It seems there was an issue. Let's try again later.",
-                "Hmm, something went wrong. Let me think...",
-                "Apologies, my circuits seem to be a bit fuzzy right now.",
-                "Looks like there's a glitch in the matrix. Please stand by."
+                "Welcome, what type of interview are you preparing for? Technical, behavioral, or general advice?",
+                "Hello! How can I assist you with your interview preparation today?",
+                "Greetings! What specific questions or concerns do you have about your upcoming interview?",
             ]
             bot_message = random.choice(random_responses)
 
@@ -104,7 +102,7 @@ def name_conversation(first_message):
             model="gpt-3.5-turbo",
         )
     except Exception as e:
-        return "Cannot generate name"
+        return "Conversation"+ str(Conversation.objects.count() + 1)
     return response.choices[0].message['content']
 
 
