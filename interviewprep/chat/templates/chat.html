@@ -81,6 +81,10 @@
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js"></script>
 </head>
 <body>
+    <form action="{% url 'logout' %}" method="post">
+        {% csrf_token %}
+        <input type="submit" value="Logout">
+      </form>
     <div class="chat-container-wrapper">
         <h1>Interview Prep Chatbot</h1>
         <div class="message-container">

@@ -1,13 +1,18 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from openai import OpenAI
-import openai
 from django.conf import settings
 import random
+from django.contrib.auth.decorators import login_required
+
+from django.contrib.auth import login
+from .forms import NewUserForm
+from django.contrib.auth.models import User
+from django.contrib import messages
 
 def index(request):
     return render(request, 'index.html')
-
+@login_required
 def chat_api(request):
     if request.method == 'POST':
         user_message = request.POST.get('message')
@@ -58,3 +63,38 @@ def chat_api(request):
         return render(request, 'chat.html')
     
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+
+
+
+
+
+
+def register_request(request):
+    if request.method == "POST":
+        form = NewUserForm(request.POST)
+        if not User.objects.filter(username=request.POST.get("username")).exists():
+            if not User.objects.filter(email=request.POST.get("email")).exists():
+                if form.is_valid():
+                    username = form.cleaned_data.get('username')
+                    email = form.cleaned_data.get('email')
+        
+                    user = form.save()
+                    messages.success(request, f'Account created for {username}!')
+                                        
+                    login(request, user)
+                    messages.success(request, "Registration successful.")
+                    return redirect("/api/chat/")
+                else:
+                    messages.error(request, "Password and confirm password do not match.")
+                    return render(request, 'registration/register.html', {'register_form': form, 'uname': request.POST.get("username"), 'address': request.POST.get("email")})
+            else:
+                messages.error(request, "Email address already registered")
+                return render(request, 'registration/register.html', {'register_form': form, 'uname': request.POST.get("username")})
+        else:
+            messages.error(request, "The username is occupied")
+            return render(request, 'registration/register.html', {'register_form': form, 'address': request.POST.get("email")})
+    else:
+        form = NewUserForm()
+    return render(request, template_name="registration/register.html", context={"register_form": form})

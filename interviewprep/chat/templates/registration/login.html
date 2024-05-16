@@ -1,0 +1,25 @@
+{% block title %}Login{% endblock %} {% block pagecontent %}
+<link rel="stylesheet" href="/static/css/login.css" /> <div class="login">
+  <h1>Login</h1>
+  <br>
+  <form method="POST"> {% csrf_token %} <div id="div_id_username" class="form-group">
+      <div>
+        <input type="text" name="username" autofocus="" autocapitalize="none" autocomplete="username" maxlength="150" placeholder="Username" required="" id="id_username" />
+      </div>
+    </div>
+    <div id="div_id_password" class="form-group">
+      <div>
+        <input type="password" name="password" autocomplete="current-password" placeholder="Password" required="" id="id_password" />
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block btn-large" type="submit">Login</button>
+  </form>
+  <br>
+  <p class="text-center"> Don't have an account? <a href="/accounts/register">Create an account</a>. </p>
+  <div>
+    <p style="text-align: center;">
+      <a href="{% url 'password_reset' %}">Reset Password</a>
+    </p>
+  </div>
+  
+</div> {% endblock %}

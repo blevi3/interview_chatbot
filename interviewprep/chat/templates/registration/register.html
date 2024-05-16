@@ -1,0 +1,30 @@
+{% block pagecontent %} <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js" integrity="sha512-rstIgDs0xPgmG6RX1Aba4KV5cWJbAMcvRCVmglpam9SoHZiUCyQVDdH2LPlxoHtrv17XWblE/V/PP+Tr04hbtA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<div class="container">
+  <h1>Register</h1>
+  <br> {% if messages %} <ul class="messages"> {% for message in messages %} <li>{{ message }}</li> {% endfor %} </ul> {% endif %} 
+  <form method="POST" id="register_form" novalidate="novalidate"> {% csrf_token %} <div id="div_id_username" class="form-group">
+      <div>
+        <input type="text" name="username" maxlength="150" autofocus="" placeholder="Username" required="" id="id_username" value="{{ uname }}" />
+      </div>
+    </div>
+    <div id="div_id_email" class="form-group">
+      <div>
+        <input type="email" name="email" placeholder="Email" required="" id="id_email" value="{{ address }}" />
+      </div>
+    </div>
+    <div id="div_id_password1" class="form-group">
+      <div>
+        <input type="password" name="password1" autocomplete="new-password" placeholder="Password" required="" id="id_password1" />
+      </div>
+    </div>
+    <div id="div_id_password2" class="form-group">
+      <div>
+        <input type="password" name="password2" autocomplete="new-password" placeholder="Password confirmation" required="" id="id_password2" />
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block btn-large" type="submit">Register</button>
+  </form>
+  
+  <br>
+  <p class="text-center"> If you already have an account, <a href="/accounts/login">login</a> instead. </p>
+</div> {% endblock %}
