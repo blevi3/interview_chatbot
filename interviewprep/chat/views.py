@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from openai import OpenAI
 from django.conf import settings
@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from PyPDF2 import PdfReader
 import io
+from .models import Message, Conversation
 
 def index(request):
     return render(request, 'index.html')
@@ -21,51 +22,38 @@ def chat_api(request):
     if request.method == 'POST':
         user_message = request.POST.get('message')
         file = request.FILES.get('file')
+        conversation_id = request.POST.get('conversation_id')
 
-
-        persona = ("Hello! I'm your dedicated interview preparation assistant. "
-                        "My goal is to help you ace your upcoming interviews by providing valuable insights, "
-                        "tips, and practice scenarios. Whether you're preparing for technical questions, "
-                        "behavioral interviews, or just need general advice, I'm here to support you every step of the way. "
-                        "Let's work together to boost your confidence and land that dream job!")
-        
         if file:
             reader = PdfReader(io.BytesIO(file.read()))
             number_of_pages = len(reader.pages)
-
             pdf_text = ''
             for page in range(number_of_pages):
                 pdf_text += reader.pages[page].extract_text()
             user_message += "the content of the pdf is:\n\n"
             user_message += pdf_text
             print(user_message)
-        client = OpenAI(
-            api_key='sk-proj-1SIbGYYqAs0OORkrF30zT3BlbkFJTfZGVacC1SCpMmkyxFZB'
-        )        
-        
+
+            
+        persona = ("Hello! I'm your dedicated interview preparation assistant. "
+                   "My goal is to help you ace your upcoming interviews by providing valuable insights, "
+                   "tips, and practice scenarios. Whether you're preparing for technical questions, "
+                   "behavioral interviews, or just need general advice, I'm here to support you every step of the way. "
+                   "Let's work together to boost your confidence and land that dream job!")
+
+
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
         try:
             response = client.chat.completions.create(
                 messages=[
-                    {
-                        "role": "system",
-                        "content": [{
-                            "type": "text",
-                            "text": persona
-                        }]
-                    },
-                    {
-                        "role": "user",
-                        "content":  [{
-                            "type": "text",
-                            "text": user_message
-                        }]
-                    }
+                    {"role": "system", "content": persona},
+                    {"role": "user", "content": user_message}
                 ],
                 model="gpt-3.5-turbo",
             )
             bot_message = response.choices[0].message['content']
         except Exception as e:
-            # If API call fails, generate a random response
             random_responses = [
                 "I'm sorry, I couldn't process your request at the moment.",
                 "It seems there was an issue. Let's try again later.",
@@ -74,14 +62,50 @@ def chat_api(request):
                 "Looks like there's a glitch in the matrix. Please stand by."
             ]
             bot_message = random.choice(random_responses)
-        
-        return JsonResponse({'message': bot_message})
-    
+
+        # Create or get the conversation
+        if conversation_id:
+            conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)
+        else:
+            title = name_conversation(user_message)
+            conversation = Conversation.objects.create(user=request.user, title=title)
+
+        Message.objects.create(conversation=conversation, role='user', content=user_message)
+        Message.objects.create(conversation=conversation, role='bot', content=bot_message)
+
+        return JsonResponse({'message': bot_message, 'conversation_id': conversation.id})
+
     if request.method == 'GET':
-        return render(request, 'chat.html')
-    
+        conversation_id = request.GET.get('conversation_id')
+        if conversation_id:
+            conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user)
+            messages = conversation.messages.all().order_by('timestamp')
+        else:
+            conversations = Conversation.objects.filter(user=request.user).order_by('-created_at')
+            return render(request, 'chat.html', {'conversations': conversations})
+
+        return render(request, 'chat.html', {'messages': messages, 'conversation_id': conversation_id})
+
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
+
+def name_conversation(first_message):
+    persona = ("Hello! I'm your dedicated conversation namer. My goal is to come up with catchy and meaningful titles for our chats based on the content of your initial message. All the names I generate are related to an interview preperation theme.")
+
+
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+    try:
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": persona},
+                {"role": "user", "content": first_message}
+            ],
+            model="gpt-3.5-turbo",
+        )
+    except Exception as e:
+        return "Cannot generate name"
+    return response.choices[0].message['content']
 
 
 

@@ -97,11 +97,23 @@
         {% csrf_token %}
         <input type="submit" value="Logout">
     </form>
+    <ul id="conversations">
+        <!-- List of conversations will be displayed here -->
+        {% for conversation in conversations %}
+            <li onclick="loadConversation({{ conversation.id }})">{{ conversation.title }}</li>
+        {% endfor %}
+    </ul>
     <div class="chat-container-wrapper">
         <h1>Interview Prep Chatbot</h1>
+        
         <div class="message-container">
             <div id="chat-container">
                 <!-- Chat messages will be displayed here -->
+                {% for message in messages %}
+                    <div class="chat-message {{ message.role }}-message">
+                        {{ message.content }}
+                    </div>
+                {% endfor %}
             </div>
         </div>
         <div style="display: flex; align-items: center;">
@@ -117,6 +129,30 @@
     </div>
 
     <script>
+
+
+        $(document).ready(function() {
+            console.log('Document ready');
+        });
+
+function loadConversation(conversationId) {
+    $.ajax({
+        url: '/api/chat/?conversation_id=' + conversationId,
+        type: 'GET',
+        success: function(response) {
+            // Extract the chat messages from the response
+            var chatMessages = $(response).find('#chat-container').html();
+            // Clear existing chat messages
+            $('#chat-container').empty();
+            // Append the chat messages to the chat container
+            $('#chat-container').append(chatMessages);
+            // Scroll to the bottom of the chat container
+            scrollToBottom();
+        }
+    });
+}
+
+
         function sendMessage() {
             var userInput = $('#user-input').val().trim();
             var fileInput = $('#file-input')[0].files[0];
@@ -132,9 +168,9 @@
             if (fileInput) {
                 formData.append('file', fileInput);
             }
-            
+
             var csrfToken = Cookies.get('csrftoken');
-    
+
             $.ajax({
                 url: '/api/chat/',
                 type: 'POST',
@@ -149,26 +185,26 @@
                     scrollToBottom();
                 }
             });
-    
+
             $('#user-input').val('');
             $('#file-input').val('');
             scrollToBottom();
         }
-    
+
         function scrollToBottom() {
             var chatContainer = document.getElementById('chat-container');
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
-    
+
         $('#send-button').click(sendMessage);
-    
+
         $('#user-input').keypress(function(e) {
             if (e.which === 13) {
                 sendMessage();
             }
         });
 
-        $('#file-button').click(function() {
+        $('#file-button').click(function(e) {
             e.preventDefault(); // Prevent default action to avoid multiple triggers
             $('#file-input').click();
         });
